@@ -1136,11 +1136,17 @@ async function handleAuth(type) {
 
       let userId = signUpData?.user?.id;
 
-      // Sign in immediately to get an active session
-      const { data: signInData, error: signInError } = await sb.auth.signInWithPassword({ email, password });
-      if (signInError) { showToast('Incorrect email or password.', 'error'); return; }
-      userId = signInData.user.id;
-      if (!userId) { showToast('Signup failed. Please try again.', 'error'); return; }
+      // Use session from signUp if available, otherwise sign in
+      if (!signUpData?.session) {
+        const { data: signInData, error: signInError } = await sb.auth.signInWithPassword({ email, password });
+        if (!signInError && signInData?.user?.id) {
+          userId = signInData.user.id;
+        }
+      } else {
+        userId = signUpData.session.user.id;
+      }
+
+      if (!userId) { showToast('Account created! Please log in.', 'success'); switchAuthTab('login'); return; }
 
       // Check if profile already exists (returning user)
       const { data: existingProfile } = await sb.from('profiles').select('id').eq('id', userId).single();
