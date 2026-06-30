@@ -1090,6 +1090,11 @@ function switchAuthTab(tab) {
 }
 
 async function handleAuth(type) {
+  const btn = document.querySelector(`#${type}Form .btn-primary`);
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading-spinner"></span> Please wait…';
+
   try {
     const email    = document.getElementById(type + 'Email').value.trim().toLowerCase();
     const password = document.getElementById(type + 'Password').value;
@@ -1098,8 +1103,16 @@ async function handleAuth(type) {
 
     if (type === 'login') {
       const { data, error } = await sb.auth.signInWithPassword({ email, password });
-      if (error) { showToast(error.message, 'error'); return; }
-      const userId = data.user.id;
+      if (error) {
+        // Email not confirmed — still let them in since autoconfirm is on
+        if (/confirm|verified/i.test(error.message)) {
+          showToast('Checking your account…', 'success');
+        } else {
+          showToast(error.message, 'error'); return;
+        }
+      }
+      const userId = data?.user?.id;
+      if (!userId) { showToast('Login failed. Please try again.', 'error'); return; }
       const { data: profile } = await sb.from('profiles').select('id').eq('id', userId).single();
       if (!profile) { showToast('No account found. Please sign up first.', 'error'); return; }
       currentUserId = userId;
@@ -1115,13 +1128,11 @@ async function handleAuth(type) {
 
       const { data: signUpData, error: signUpError } = await sb.auth.signUp({ email, password });
 
-      // If error is NOT email-related, show it and stop
       if (signUpError && !/email|rate|limit|credit/i.test(signUpError.message)) {
         showToast(signUpError.message, 'error'); return;
       }
 
-      // Get session — either from signUp or by signing in directly
-      let userId   = signUpData?.user?.id;
+      let userId     = signUpData?.user?.id;
       let hasSession = !!signUpData?.session;
 
       if (!hasSession) {
@@ -1131,7 +1142,8 @@ async function handleAuth(type) {
         hasSession = true;
       }
 
-      // Create profile only if it doesn't exist yet
+      if (!userId) { showToast('Signup failed. Please try again.', 'error'); return; }
+
       const { data: existingProfile } = await sb.from('profiles').select('id').eq('id', userId).single();
       if (!existingProfile) {
         const refCode = genReferralCode(name, email);
@@ -1166,6 +1178,9 @@ async function handleAuth(type) {
     }
   } catch (e) {
     showToast(e.message || 'Something went wrong', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origText;
   }
 }
 
