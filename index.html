@@ -183,31 +183,6 @@ input, select, textarea { font-family: inherit; }
 .nav-item.active { background: rgba(240,185,11,0.1); color: var(--gold); }
 .nav-item .nav-icon { font-size: 1.15rem; width: 24px; text-align: center; }
 
-.sidebar-profile {
-  margin: 12px 10px;
-  padding: 14px;
-  background: linear-gradient(135deg, rgba(124,77,255,0.12), rgba(240,185,11,0.08));
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  display: flex; align-items: center; gap: 12px;
-  cursor: pointer; transition: background 0.2s;
-}
-.sidebar-profile:hover { background: linear-gradient(135deg, rgba(124,77,255,0.2), rgba(240,185,11,0.12)); }
-.sidebar-profile .sp-avatar {
-  width: 42px; height: 42px; flex-shrink: 0;
-  background: linear-gradient(135deg, var(--accent), var(--gold));
-  border-radius: 50%; display: flex; align-items: center;
-  justify-content: center; font-size: 1.1rem; font-weight: 700;
-  color: #fff; border: 2px solid rgba(255,255,255,0.15);
-}
-.sidebar-profile .sp-info { flex: 1; overflow: hidden; }
-.sidebar-profile .sp-name {
-  font-size: 0.875rem; font-weight: 700; color: var(--text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.sidebar-profile .sp-tokens {
-  font-size: 0.75rem; color: var(--gold); font-weight: 600; margin-top: 2px;
-}
 
 .sidebar-bottom { padding: 16px; border-top: 1px solid var(--border); }
 .logout-btn {
@@ -745,15 +720,6 @@ input, select, textarea { font-family: inherit; }
       <div class="s-icon">🎰</div>
       <span>Spin2Earn</span>
     </div>
-    <!-- Profile card -->
-    <div class="sidebar-profile" onclick="navigate('profile')">
-      <div class="sp-avatar" id="sidebarAvatar">U</div>
-      <div class="sp-info">
-        <div class="sp-name" id="sidebarName">User</div>
-        <div class="sp-tokens">🪙 <span id="sidebarTokens">0</span> tokens</div>
-      </div>
-    </div>
-
     <nav class="sidebar-nav">
       <button class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
         <span class="nav-icon">🏠</span> Home
@@ -1297,9 +1263,6 @@ async function updateUI() {
   document.getElementById('userAvatar').textContent    = initials;
   document.getElementById('userName').textContent      = name.split(' ')[0];
   document.getElementById('topbarTokens').textContent  = (+w.total_tokens).toFixed(1);
-  document.getElementById('sidebarAvatar').textContent = initials;
-  document.getElementById('sidebarName').textContent   = name;
-  document.getElementById('sidebarTokens').textContent = (+w.total_tokens).toFixed(1);
   document.getElementById('statGold').textContent      = (+w.gold_balance || 0).toFixed(4);
   document.getElementById('statTokens').textContent    = (+w.total_tokens).toFixed(1);
   document.getElementById('statSpins').textContent     = ss.count + ' / ' + maxS;
