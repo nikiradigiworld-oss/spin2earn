@@ -1113,35 +1113,53 @@ async function handleAuth(type) {
       const refInput = document.getElementById('signupReferral').value.trim().toUpperCase();
       if (!name) { showToast('Enter your name', 'error'); return; }
 
-      const { data, error } = await sb.auth.signUp({ email, password });
-      if (error) { showToast(error.message, 'error'); return; }
-      const userId = data.user.id;
+      const { data: signUpData, error: signUpError } = await sb.auth.signUp({ email, password });
 
-      const refCode = genReferralCode(name, email);
-      const { error: pErr } = await sb.from('profiles').insert({ id: userId, name, email, country, referral_code: refCode });
-      if (pErr) { showToast(pErr.message, 'error'); return; }
-
-      await sb.from('wallets').insert({ user_id: userId, total_tokens: 100, earned_tokens: 100, gold_balance: 1 });
-      await sb.from('spin_history').insert({ user_id: userId, label: '🎁 Welcome Bonus', tokens_won: 100 });
-
-      if (refInput) {
-        const { data: referrer } = await sb.from('profiles').select('id').eq('referral_code', refInput).single();
-        if (referrer) {
-          await sb.from('referral_uses').insert({ referrer_id: referrer.id, referred_id: userId });
-          const { data: rw } = await sb.from('wallets').select('*').eq('user_id', referrer.id).single();
-          if (rw) {
-            const newTotal  = parseFloat((rw.total_tokens + 10).toFixed(2));
-            const newEarned = parseFloat((rw.earned_tokens + 10).toFixed(2));
-            await sb.from('wallets').update({
-              total_tokens:  newTotal,
-              earned_tokens: newEarned,
-              gold_balance:  parseFloat((newTotal / 100).toFixed(4)),
-            }).eq('user_id', referrer.id);
-          }
-        }
+      // If error is NOT email-related, show it and stop
+      if (signUpError && !/email|rate|limit|credit/i.test(signUpError.message)) {
+        showToast(signUpError.message, 'error'); return;
       }
 
-      showToast('Welcome! 100 bonus tokens credited 🎉', 'success');
+      // Get session — either from signUp or by signing in directly
+      let userId   = signUpData?.user?.id;
+      let hasSession = !!signUpData?.session;
+
+      if (!hasSession) {
+        const { data: signInData, error: signInError } = await sb.auth.signInWithPassword({ email, password });
+        if (signInError) { showToast(signInError.message, 'error'); return; }
+        userId     = signInData.user.id;
+        hasSession = true;
+      }
+
+      // Create profile only if it doesn't exist yet
+      const { data: existingProfile } = await sb.from('profiles').select('id').eq('id', userId).single();
+      if (!existingProfile) {
+        const refCode = genReferralCode(name, email);
+        const { error: pErr } = await sb.from('profiles').insert({ id: userId, name, email, country, referral_code: refCode });
+        if (pErr) { showToast(pErr.message, 'error'); return; }
+
+        await sb.from('wallets').insert({ user_id: userId, total_tokens: 100, earned_tokens: 100, gold_balance: 1 });
+        await sb.from('spin_history').insert({ user_id: userId, label: '🎁 Welcome Bonus', tokens_won: 100 });
+
+        if (refInput) {
+          const { data: referrer } = await sb.from('profiles').select('id').eq('referral_code', refInput).single();
+          if (referrer) {
+            await sb.from('referral_uses').insert({ referrer_id: referrer.id, referred_id: userId });
+            const { data: rw } = await sb.from('wallets').select('*').eq('user_id', referrer.id).single();
+            if (rw) {
+              const newTotal  = parseFloat((rw.total_tokens + 10).toFixed(2));
+              const newEarned = parseFloat((rw.earned_tokens + 10).toFixed(2));
+              await sb.from('wallets').update({
+                total_tokens:  newTotal,
+                earned_tokens: newEarned,
+                gold_balance:  parseFloat((newTotal / 100).toFixed(4)),
+              }).eq('user_id', referrer.id);
+            }
+          }
+        }
+        showToast('Welcome! 100 bonus tokens credited 🎉', 'success');
+      }
+
       currentUserId = userId;
       currentEmail  = email;
       await enterApp();
