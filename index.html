@@ -533,15 +533,11 @@ input, select, textarea { font-family: inherit; }
       <div id="loginForm">
         <div class="form-group">
           <label>Email address</label>
-          <div class="otp-row">
-            <input type="email" id="loginEmail" placeholder="you@gmail.com">
-            <button class="otp-btn" id="loginOtpBtn" onclick="sendOTP('login')">Send OTP</button>
-          </div>
+          <input type="email" id="loginEmail" placeholder="you@gmail.com">
         </div>
-        <div id="loginOtpBox" class="hidden"></div>
-        <div class="form-group hidden" id="loginOtpGroup">
-          <label>Enter OTP</label>
-          <input type="text" id="loginOtp" placeholder="6-digit code" maxlength="6" inputmode="numeric">
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="loginPassword" placeholder="Enter your password">
         </div>
         <button class="btn-primary" onclick="handleAuth('login')">Log in</button>
       </div>
@@ -554,15 +550,11 @@ input, select, textarea { font-family: inherit; }
         </div>
         <div class="form-group">
           <label>Email address</label>
-          <div class="otp-row">
-            <input type="email" id="signupEmail" placeholder="you@gmail.com">
-            <button class="otp-btn" id="signupOtpBtn" onclick="sendOTP('signup')">Send OTP</button>
-          </div>
+          <input type="email" id="signupEmail" placeholder="you@gmail.com">
         </div>
-        <div id="signupOtpBox" class="hidden"></div>
-        <div class="form-group hidden" id="signupOtpGroup">
-          <label>Enter OTP</label>
-          <input type="text" id="signupOtp" placeholder="6-digit code" maxlength="6" inputmode="numeric">
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="signupPassword" placeholder="Create a password (min 6 chars)">
         </div>
         <div class="form-group">
           <label>Country</label>
@@ -962,80 +954,35 @@ function switchAuthTab(tab) {
   document.getElementById('signupForm').classList.toggle('hidden', tab !== 'signup');
 }
 
-async function sendOTP(type) {
-  const email = document.getElementById(type + 'Email').value.trim().toLowerCase();
-  if (!email || !email.includes('@')) { showToast('Enter a valid email', 'error'); return; }
-
-  // Validate + stash signup fields before sending so magic-link redirect can use them
-  if (type === 'signup') {
-    const name = document.getElementById('signupName').value.trim();
-    if (!name) { showToast('Enter your name first', 'error'); return; }
-    sessionStorage.setItem('s2e_pending', JSON.stringify({
-      name,
-      country:  document.getElementById('signupCountry').value,
-      refInput: document.getElementById('signupReferral').value.trim().toUpperCase(),
-      email,
-    }));
-  }
-
-  const btn = document.getElementById(type + 'OtpBtn');
-  btn.disabled = true;
-  btn.textContent = 'Sending…';
-
-  const { error } = await sb.auth.signInWithOtp({
-    email,
-    options: {
-      shouldCreateUser: true,
-      emailRedirectTo: window.location.href.split('?')[0],
-    },
-  });
-
-  if (error) {
-    btn.disabled = false;
-    btn.textContent = 'Send OTP';
-    showToast(error.message, 'error');
-    return;
-  }
-
-  btn.textContent = 'Sent ✓';
-  setTimeout(() => { btn.disabled = false; btn.textContent = 'Resend'; }, 30000);
-
-  document.getElementById(type + 'OtpGroup').classList.remove('hidden');
-  const box = document.getElementById(type + 'OtpBox');
-  box.classList.remove('hidden');
-  box.innerHTML = `<div class="otp-box">📧 <strong>Check your email</strong><br>
-    Click the <strong>magic link</strong> to sign in instantly<br>
-    <span style="font-size:0.78rem;opacity:0.7">— or paste the 6-digit code below if shown in the email —</span></div>`;
-  showToast('Magic link sent to ' + email, 'success');
-}
-
 async function handleAuth(type) {
   try {
-    const email = document.getElementById(type + 'Email').value.trim().toLowerCase();
-    const code  = document.getElementById(type + 'Otp').value.trim();
+    const email    = document.getElementById(type + 'Email').value.trim().toLowerCase();
+    const password = document.getElementById(type + 'Password').value;
     if (!email) { showToast('Enter your email', 'error'); return; }
-    if (!code || code.length < 6) { showToast('Enter the 6-digit OTP', 'error'); return; }
-
-    const { data, error } = await sb.auth.verifyOtp({ email, token: code, type: 'email' });
-    if (error) { showToast(error.message, 'error'); return; }
-
-    const userId = data.user.id;
-    const { data: profile } = await sb.from('profiles').select('id').eq('id', userId).single();
+    if (!password || password.length < 6) { showToast('Password must be at least 6 characters', 'error'); return; }
 
     if (type === 'login') {
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) { showToast(error.message, 'error'); return; }
+      const userId = data.user.id;
+      const { data: profile } = await sb.from('profiles').select('id').eq('id', userId).single();
       if (!profile) { showToast('No account found. Please sign up first.', 'error'); return; }
+      currentUserId = userId;
+      currentEmail  = email;
+      await enterApp();
     }
 
     if (type === 'signup') {
-      if (profile) { showToast('Account already exists. Please log in.', 'error'); return; }
-
-      const name    = document.getElementById('signupName').value.trim();
-      const country = document.getElementById('signupCountry').value;
+      const name     = document.getElementById('signupName').value.trim();
+      const country  = document.getElementById('signupCountry').value;
       const refInput = document.getElementById('signupReferral').value.trim().toUpperCase();
       if (!name) { showToast('Enter your name', 'error'); return; }
 
-      const refCode = genReferralCode(name, email);
+      const { data, error } = await sb.auth.signUp({ email, password });
+      if (error) { showToast(error.message, 'error'); return; }
+      const userId = data.user.id;
 
+      const refCode = genReferralCode(name, email);
       const { error: pErr } = await sb.from('profiles').insert({ id: userId, name, email, country, referral_code: refCode });
       if (pErr) { showToast(pErr.message, 'error'); return; }
 
@@ -1048,22 +995,22 @@ async function handleAuth(type) {
           await sb.from('referral_uses').insert({ referrer_id: referrer.id, referred_id: userId });
           const { data: rw } = await sb.from('wallets').select('*').eq('user_id', referrer.id).single();
           if (rw) {
-            const newTotal   = parseFloat((rw.total_tokens + 10).toFixed(2));
-            const newEarned  = parseFloat((rw.earned_tokens + 10).toFixed(2));
+            const newTotal  = parseFloat((rw.total_tokens + 10).toFixed(2));
+            const newEarned = parseFloat((rw.earned_tokens + 10).toFixed(2));
             await sb.from('wallets').update({
-              total_tokens:   newTotal,
-              earned_tokens:  newEarned,
-              gold_balance:   parseFloat((newTotal / 100).toFixed(4)),
+              total_tokens:  newTotal,
+              earned_tokens: newEarned,
+              gold_balance:  parseFloat((newTotal / 100).toFixed(4)),
             }).eq('user_id', referrer.id);
           }
         }
       }
-      showToast('Welcome! 100 bonus tokens credited 🎉', 'success');
-    }
 
-    currentUserId = userId;
-    currentEmail  = email;
-    await enterApp();
+      showToast('Welcome! 100 bonus tokens credited 🎉', 'success');
+      currentUserId = userId;
+      currentEmail  = email;
+      await enterApp();
+    }
   } catch (e) {
     showToast(e.message || 'Something went wrong', 'error');
   }
@@ -1085,10 +1032,8 @@ async function logout() {
   currentEmail  = null;
   document.getElementById('appShell').classList.add('hidden');
   document.getElementById('authPage').classList.remove('hidden');
-  document.getElementById('loginEmail').value = '';
-  document.getElementById('loginOtp').value   = '';
-  document.getElementById('loginOtpGroup').classList.add('hidden');
-  document.getElementById('loginOtpBox').classList.add('hidden');
+  document.getElementById('loginEmail').value    = '';
+  document.getElementById('loginPassword').value = '';
 }
 
 async function enterApp() {
