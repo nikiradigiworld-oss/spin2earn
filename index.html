@@ -1134,15 +1134,16 @@ async function handleAuth(type) {
         showToast('Could not create account. Please try again.', 'error'); return;
       }
 
-      let userId     = signUpData?.user?.id;
-      let hasSession = !!signUpData?.session;
+      let userId = signUpData?.user?.id;
 
-      if (!hasSession) {
-        const { data: signInData, error: signInError } = await sb.auth.signInWithPassword({ email, password });
-        if (signInError) { showToast('Incorrect email or password.', 'error'); return; }
-        userId     = signInData.user.id;
-        hasSession = true;
-      }
+      // Always sign in to guarantee an active session before DB inserts
+      const { data: signInData, error: signInError } = await sb.auth.signInWithPassword({ email, password });
+      if (signInError) { showToast('Incorrect email or password.', 'error'); return; }
+      userId = signInData.user.id;
+
+      // Confirm session is live
+      const { data: { session: activeSession } } = await sb.auth.getSession();
+      if (!activeSession) { showToast('Session error. Please try again.', 'error'); return; }
 
       if (!userId) { showToast('Signup failed. Please try again.', 'error'); return; }
 
