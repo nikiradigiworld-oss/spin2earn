@@ -1130,20 +1130,31 @@ async function handleAuth(type) {
 
       const { data: signUpData, error: signUpError } = await sb.auth.signUp({ email, password });
 
-      if (signUpError && !/email|rate|limit|credit/i.test(signUpError.message)) {
-        showToast('Could not create account. Please try again.', 'error'); return;
-      }
-
       let userId = signUpData?.user?.id;
 
-      // Use session from signUp if available, otherwise sign in
-      if (!signUpData?.session) {
-        const { data: signInData, error: signInError } = await sb.auth.signInWithPassword({ email, password });
-        if (!signInError && signInData?.user?.id) {
+      if (signUpError) {
+        // Already registered — try signing in instead
+        if (/already|registered|exists/i.test(signUpError.message)) {
+          const { data: signInData, error: signInError } = await sb.auth.signInWithPassword({ email, password });
+          if (signInError) { showToast('This email is already registered. Please log in.', 'error'); switchAuthTab('login'); return; }
           userId = signInData.user.id;
+        } else if (/email|rate|limit|credit/i.test(signUpError.message)) {
+          // Email sending failed but user may have been created — try signing in
+          const { data: signInData } = await sb.auth.signInWithPassword({ email, password });
+          if (signInData?.user?.id) userId = signInData.user.id;
+        } else {
+          showToast('Could not create account. Please try again.', 'error'); return;
         }
-      } else {
-        userId = signUpData.session.user.id;
+      }
+
+      // Use session from signUp if available, otherwise sign in
+      if (!userId) {
+        if (signUpData?.session) {
+          userId = signUpData.session.user.id;
+        } else {
+          const { data: signInData } = await sb.auth.signInWithPassword({ email, password });
+          userId = signInData?.user?.id;
+        }
       }
 
       if (!userId) { showToast('Account created! Please log in.', 'success'); switchAuthTab('login'); return; }
