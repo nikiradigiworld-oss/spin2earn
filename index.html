@@ -1,0 +1,1603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spin2Earn — Spin & Earn SIP Money</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep: #06081a;
+  --bg-card: #0f1235;
+  --bg-card-hover: #161a45;
+  --gold: #f0b90b;
+  --gold-light: #ffd54f;
+  --gold-dim: #a67c00;
+  --accent: #7c4dff;
+  --accent-light: #b388ff;
+  --text: #e8e6f0;
+  --text-muted: #8a87a8;
+  --text-dim: #5c5a72;
+  --danger: #ff4757;
+  --success: #2ed573;
+  --glass: rgba(15,18,53,0.85);
+  --border: rgba(240,185,11,0.12);
+  --radius: 14px;
+  --radius-sm: 8px;
+}
+
+html { font-size: 16px; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg-deep);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.hidden { display: none !important; }
+button { cursor: pointer; font-family: inherit; border: none; }
+input, select, textarea { font-family: inherit; }
+
+/* ─── SETUP BANNER ─── */
+.setup-banner {
+  position: fixed; top: 0; left: 0; right: 0;
+  background: #ff4757; color: #fff;
+  padding: 10px 20px; text-align: center;
+  z-index: 9999; font-size: 0.85rem; line-height: 1.5;
+}
+.setup-banner a { color: #fff; font-weight: 700; }
+
+/* ─── AUTH ─── */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(124,77,255,0.15) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(240,185,11,0.1) 0%, transparent 50%),
+    var(--bg-deep);
+  padding: 20px;
+}
+
+.auth-container { width: 100%; max-width: 440px; }
+
+.auth-logo { text-align: center; margin-bottom: 36px; }
+.auth-logo .logo-icon {
+  width: 72px; height: 72px;
+  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+  border-radius: 20px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 32px; margin-bottom: 16px;
+  box-shadow: 0 8px 32px rgba(240,185,11,0.25);
+}
+.auth-logo h1 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.75rem; font-weight: 700;
+  background: linear-gradient(135deg, var(--gold-light), var(--gold));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.auth-logo p { color: var(--text-muted); font-size: 0.875rem; margin-top: 6px; }
+
+.auth-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 32px;
+}
+
+.auth-tabs {
+  display: flex; gap: 4px;
+  background: var(--bg-deep); border-radius: var(--radius-sm);
+  padding: 4px; margin-bottom: 28px;
+}
+.auth-tab {
+  flex: 1; padding: 10px; border-radius: 6px;
+  font-size: 0.875rem; font-weight: 600;
+  color: var(--text-muted); background: none; transition: all 0.25s;
+}
+.auth-tab.active { background: var(--accent); color: #fff; }
+
+.form-group { margin-bottom: 18px; }
+.form-group label {
+  display: block; font-size: 0.8rem; font-weight: 600;
+  color: var(--text-muted); margin-bottom: 7px;
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.form-group input, .form-group select {
+  width: 100%; padding: 12px 16px;
+  background: var(--bg-deep); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text);
+  font-size: 0.95rem; transition: border-color 0.2s; outline: none;
+}
+.form-group input:focus, .form-group select:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(240,185,11,0.1);
+}
+.form-group input::placeholder { color: var(--text-dim); }
+.form-group select option { background: var(--bg-card); }
+
+.otp-row { display: flex; gap: 10px; }
+.otp-row input { flex: 1; }
+.otp-row .otp-btn {
+  padding: 12px 18px; background: var(--accent); color: #fff;
+  border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 600;
+  white-space: nowrap; transition: background 0.2s;
+}
+.otp-row .otp-btn:hover { background: var(--accent-light); }
+.otp-row .otp-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-primary {
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+  color: #000; font-size: 0.95rem; font-weight: 700;
+  border-radius: var(--radius-sm); letter-spacing: 0.02em;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(240,185,11,0.3); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.auth-footer { text-align: center; margin-top: 20px; font-size: 0.85rem; color: var(--text-dim); }
+
+.otp-box {
+  margin-top: 10px; padding: 14px 16px;
+  background: rgba(46,213,115,0.08); border: 1px solid rgba(46,213,115,0.2);
+  border-radius: var(--radius-sm); font-size: 0.9rem; color: var(--success);
+  text-align: center; letter-spacing: 0.04em; line-height: 1.5;
+}
+
+/* ─── APP LAYOUT ─── */
+.app-layout { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 240px; background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+  transition: transform 0.3s;
+}
+.sidebar-logo {
+  padding: 24px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+}
+.sidebar-logo .s-icon {
+  width: 40px; height: 40px;
+  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+  border-radius: 10px; display: flex; align-items: center;
+  justify-content: center; font-size: 18px; flex-shrink: 0;
+}
+.sidebar-logo span { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.1rem; color: var(--gold); }
+
+.sidebar-nav { flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: var(--radius-sm);
+  font-size: 0.9rem; font-weight: 500;
+  color: var(--text-muted); background: none;
+  width: 100%; text-align: left; transition: all 0.2s;
+}
+.nav-item:hover { background: var(--bg-card-hover); color: var(--text); }
+.nav-item.active { background: rgba(240,185,11,0.1); color: var(--gold); }
+.nav-item .nav-icon { font-size: 1.15rem; width: 24px; text-align: center; }
+
+.sidebar-bottom { padding: 16px; border-top: 1px solid var(--border); }
+.logout-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; width: 100%; background: none;
+  color: var(--danger); font-size: 0.875rem; font-weight: 500;
+  border-radius: var(--radius-sm); text-align: left; transition: background 0.2s;
+}
+.logout-btn:hover { background: rgba(255,71,87,0.08); }
+
+.main-content { flex: 1; margin-left: 240px; min-height: 100vh; }
+
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 28px; border-bottom: 1px solid var(--border);
+  background: var(--glass); backdrop-filter: blur(12px);
+  position: sticky; top: 0; z-index: 50;
+}
+.topbar h2 { font-family: 'Space Grotesk', sans-serif; font-size: 1.25rem; font-weight: 700; }
+.topbar-right { display: flex; align-items: center; gap: 16px; }
+
+.user-badge {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 14px 6px 6px; background: var(--bg-deep);
+  border-radius: 100px; font-size: 0.85rem;
+}
+.user-badge .avatar {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--accent), var(--gold));
+  border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; font-size: 0.8rem; font-weight: 700;
+}
+.token-badge {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  background: rgba(240,185,11,0.08); border: 1px solid rgba(240,185,11,0.2);
+  border-radius: 100px; font-size: 0.85rem; font-weight: 600; color: var(--gold);
+}
+
+.page-content { padding: 28px; }
+.mobile-toggle { display: none; background: none; color: var(--text); font-size: 1.5rem; padding: 4px; }
+
+/* ─── DASHBOARD ─── */
+.stats-row {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px; margin-bottom: 28px;
+}
+.stat-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px;
+}
+.stat-card .stat-label {
+  font-size: 0.8rem; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;
+}
+.stat-card .stat-value { font-family: 'Space Grotesk', sans-serif; font-size: 1.6rem; font-weight: 700; }
+.stat-card .stat-value.gold { color: var(--gold); }
+.stat-card .stat-value.accent { color: var(--accent-light); }
+.stat-card .stat-value.success { color: var(--success); }
+
+.spin-section { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 28px; }
+
+.wheel-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 32px;
+  display: flex; flex-direction: column; align-items: center;
+}
+.wheel-card h3 { font-family: 'Space Grotesk', sans-serif; font-size: 1.15rem; margin-bottom: 6px; }
+.wheel-card .wheel-sub { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 28px; }
+
+.wheel-container { position: relative; width: 320px; height: 320px; margin-bottom: 28px; }
+.wheel-pointer {
+  position: absolute; top: -16px; left: 50%;
+  transform: translateX(-50%); z-index: 10;
+  font-size: 2rem; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+}
+#spinWheel {
+  width: 320px; height: 320px;
+  transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+}
+
+.spin-btn {
+  padding: 14px 48px;
+  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+  color: #000; font-size: 1rem; font-weight: 800;
+  border-radius: 100px; letter-spacing: 0.04em;
+  text-transform: uppercase; transition: all 0.2s;
+  box-shadow: 0 4px 20px rgba(240,185,11,0.3);
+}
+.spin-btn:hover { transform: scale(1.04); box-shadow: 0 6px 30px rgba(240,185,11,0.45); }
+.spin-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.spin-limit-bar { width: 100%; max-width: 320px; margin-top: 12px; }
+.spin-limit-bar .bar-label {
+  font-size: 0.78rem; color: var(--text-muted); margin-bottom: 5px;
+  display: flex; justify-content: space-between;
+}
+.bar-track { height: 6px; background: var(--bg-deep); border-radius: 99px; overflow: hidden; }
+.bar-fill {
+  height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-dim));
+  border-radius: 99px; transition: width 0.4s;
+}
+
+.prize-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 28px;
+}
+.prize-card h3 { font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+
+.prize-table { width: 100%; border-collapse: collapse; }
+.prize-table th, .prize-table td { padding: 10px 12px; text-align: left; font-size: 0.85rem; border-bottom: 1px solid var(--border); }
+.prize-table th { color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; }
+
+.prize-tag { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 0.75rem; font-weight: 600; }
+.prize-tag.common { background: rgba(138,135,168,0.15); color: var(--text-muted); }
+.prize-tag.uncommon { background: rgba(46,213,115,0.12); color: var(--success); }
+.prize-tag.rare { background: rgba(124,77,255,0.15); color: var(--accent-light); }
+.prize-tag.legendary { background: rgba(240,185,11,0.12); color: var(--gold); }
+
+.spin-history { margin-top: 24px; }
+.spin-history h4 { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+.history-list { display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; }
+.history-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 14px; background: var(--bg-deep);
+  border-radius: var(--radius-sm); font-size: 0.85rem;
+}
+.history-item .h-amount { color: var(--gold); font-weight: 600; }
+.history-item .h-time { color: var(--text-dim); font-size: 0.8rem; }
+
+/* ─── WALLET ─── */
+.wallet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+.wallet-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 28px;
+}
+.wallet-card h3 { font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+
+.wallet-summary { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px; }
+.wallet-summary h3 { font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; margin-bottom: 18px; }
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; }
+.summary-item { background: var(--bg-deep); border-radius: var(--radius-sm); padding: 16px; }
+.summary-item .s-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+.summary-item .s-value { font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; font-weight: 700; }
+
+.tx-history { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; }
+.tx-history h3 { font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; margin-bottom: 16px; }
+.tx-table { width: 100%; border-collapse: collapse; }
+.tx-table th, .tx-table td { padding: 12px; text-align: left; font-size: 0.85rem; border-bottom: 1px solid var(--border); }
+.tx-table th { color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; }
+
+.status-badge { display: inline-block; padding: 4px 10px; border-radius: 100px; font-size: 0.75rem; font-weight: 600; }
+.status-badge.pending { background: rgba(255,165,0,0.12); color: orange; }
+.status-badge.completed { background: rgba(46,213,115,0.12); color: var(--success); }
+.status-badge.failed { background: rgba(255,71,87,0.12); color: var(--danger); }
+
+.note-box {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 14px 16px;
+  background: rgba(240,185,11,0.06); border: 1px solid rgba(240,185,11,0.15);
+  border-radius: var(--radius-sm); font-size: 0.83rem;
+  color: var(--text-muted); margin-top: 16px; line-height: 1.5;
+}
+.note-box .note-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+.crypto-address {
+  padding: 10px 14px;
+  background: var(--bg-deep); border: 1px solid var(--gold);
+  border-radius: var(--radius-sm); font-size: 0.78rem;
+  color: var(--gold); word-break: break-all; margin: 12px 0;
+  font-family: monospace; line-height: 1.5;
+}
+.upload-area {
+  border: 2px dashed var(--border); border-radius: var(--radius-sm);
+  padding: 24px; text-align: center; color: var(--text-dim);
+  font-size: 0.85rem; margin-top: 14px; cursor: pointer; transition: border-color 0.2s;
+}
+.upload-area:hover { border-color: var(--gold); }
+
+/* ─── PROFILE ─── */
+.profile-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 32px; max-width: 600px;
+}
+.profile-card h3 { font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; margin-bottom: 24px; }
+.profile-avatar {
+  width: 80px; height: 80px;
+  background: linear-gradient(135deg, var(--accent), var(--gold));
+  border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; font-size: 2rem; font-weight: 700; margin-bottom: 24px;
+}
+
+/* ─── REFERRAL ─── */
+.referral-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 28px;
+  max-width: 600px; margin-bottom: 20px;
+}
+.referral-card h3 { font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; margin-bottom: 16px; }
+.referral-link-box {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg-deep); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 16px;
+}
+.referral-link-box input { flex: 1; background: none; border: none; color: var(--text); font-size: 0.9rem; outline: none; }
+.copy-btn { padding: 8px 16px; background: var(--accent); color: #fff; border-radius: 6px; font-size: 0.8rem; font-weight: 600; transition: background 0.2s; }
+.copy-btn:hover { background: var(--accent-light); }
+
+/* ─── MODAL ─── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; backdrop-filter: blur(6px);
+}
+.modal-card {
+  background: var(--bg-card); border: 1px solid var(--gold);
+  border-radius: var(--radius); padding: 40px;
+  text-align: center; max-width: 380px; width: 90%;
+  animation: modalPop 0.35s ease;
+}
+@keyframes modalPop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.modal-card .win-icon { font-size: 3.5rem; margin-bottom: 12px; }
+.modal-card .win-label { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 6px; }
+.modal-card .win-amount { font-family: 'Space Grotesk', sans-serif; font-size: 2.5rem; font-weight: 700; color: var(--gold); margin-bottom: 6px; }
+.modal-card .win-sub { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 24px; }
+.modal-card .modal-close { padding: 12px 36px; background: linear-gradient(135deg, var(--gold), var(--gold-dim)); color: #000; font-weight: 700; border-radius: 100px; font-size: 0.9rem; }
+
+/* ─── TOAST ─── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  padding: 14px 22px; background: var(--bg-card);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text); font-size: 0.875rem; z-index: 2000;
+  animation: slideIn 0.3s ease; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  max-width: 320px;
+}
+.toast.success { border-color: var(--success); }
+.toast.error { border-color: var(--danger); }
+@keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* ─── LEVEL BADGE ─── */
+.level-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px;
+  background: rgba(124,77,255,0.12); border: 1px solid rgba(124,77,255,0.25);
+  border-radius: 100px; font-size: 0.8rem; font-weight: 700; color: var(--accent-light);
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 900px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); box-shadow: 4px 0 30px rgba(0,0,0,0.5); }
+  .main-content { margin-left: 0; }
+  .mobile-toggle { display: block; }
+  .spin-section, .wallet-grid { grid-template-columns: 1fr; }
+  .wheel-container { width: 260px; height: 260px; }
+  #spinWheel { width: 260px; height: 260px; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 500px) {
+  .page-content { padding: 16px; }
+  .topbar { padding: 12px 16px; }
+  .stats-row { grid-template-columns: 1fr; }
+  .summary-grid { grid-template-columns: 1fr 1fr; }
+  .wheel-container { width: 240px; height: 240px; }
+  #spinWheel { width: 240px; height: 240px; }
+}
+
+.loading-spinner {
+  display: inline-block; width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+  border-radius: 50%; animation: spinAnim 0.6s linear infinite;
+  vertical-align: middle; margin-right: 6px;
+}
+@keyframes spinAnim { to { transform: rotate(360deg); } }
+
+.empty-state { text-align: center; padding: 32px; color: var(--text-dim); }
+.empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<!-- ═══ AUTH PAGE ═══ -->
+<div id="authPage" class="auth-page">
+  <div class="auth-container">
+    <div class="auth-logo">
+      <div class="logo-icon">🎰</div>
+      <h1>Spin2Earn</h1>
+      <p>Spin the wheel. Earn SIP money.</p>
+    </div>
+
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="switchAuthTab('login')">Log in</button>
+        <button class="auth-tab" onclick="switchAuthTab('signup')">Sign up</button>
+      </div>
+
+      <!-- Login -->
+      <div id="loginForm">
+        <div class="form-group">
+          <label>Email address</label>
+          <div class="otp-row">
+            <input type="email" id="loginEmail" placeholder="you@gmail.com">
+            <button class="otp-btn" id="loginOtpBtn" onclick="sendOTP('login')">Send OTP</button>
+          </div>
+        </div>
+        <div id="loginOtpBox" class="hidden"></div>
+        <div class="form-group hidden" id="loginOtpGroup">
+          <label>Enter OTP</label>
+          <input type="text" id="loginOtp" placeholder="6-digit code" maxlength="6" inputmode="numeric">
+        </div>
+        <button class="btn-primary" onclick="handleAuth('login')">Log in</button>
+      </div>
+
+      <!-- Signup -->
+      <div id="signupForm" class="hidden">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="signupName" placeholder="Your full name">
+        </div>
+        <div class="form-group">
+          <label>Email address</label>
+          <div class="otp-row">
+            <input type="email" id="signupEmail" placeholder="you@gmail.com">
+            <button class="otp-btn" id="signupOtpBtn" onclick="sendOTP('signup')">Send OTP</button>
+          </div>
+        </div>
+        <div id="signupOtpBox" class="hidden"></div>
+        <div class="form-group hidden" id="signupOtpGroup">
+          <label>Enter OTP</label>
+          <input type="text" id="signupOtp" placeholder="6-digit code" maxlength="6" inputmode="numeric">
+        </div>
+        <div class="form-group">
+          <label>Country</label>
+          <select id="signupCountry">
+            <option value="IN">India</option>
+            <option value="US">United States</option>
+            <option value="UK">United Kingdom</option>
+            <option value="SG">Singapore</option>
+            <option value="AE">UAE</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Referral Code (optional)</label>
+          <input type="text" id="signupReferral" placeholder="Enter code if you have one">
+        </div>
+        <button class="btn-primary" onclick="handleAuth('signup')">Create account</button>
+      </div>
+    </div>
+    <div class="auth-footer">By continuing, you agree to our Terms &amp; Privacy Policy.</div>
+  </div>
+</div>
+
+<!-- ═══ APP SHELL ═══ -->
+<div id="appShell" class="app-layout hidden">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="s-icon">🎰</div>
+      <span>Spin2Earn</span>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+        <span class="nav-icon">🏠</span> Home
+      </button>
+      <button class="nav-item" data-page="profile" onclick="navigate('profile')">
+        <span class="nav-icon">👤</span> Profile
+      </button>
+      <button class="nav-item" data-page="wallet" onclick="navigate('wallet')">
+        <span class="nav-icon">💰</span> Wallet
+      </button>
+      <button class="nav-item" data-page="referral" onclick="navigate('referral')">
+        <span class="nav-icon">🔗</span> Referral
+      </button>
+      <button class="nav-item" data-page="toplist" onclick="navigate('toplist')">
+        <span class="nav-icon">🏆</span> Top List
+      </button>
+    </nav>
+    <div class="sidebar-bottom">
+      <button class="logout-btn" onclick="logout()"><span>🚪</span> Log out</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="mobile-toggle" onclick="toggleSidebar()">☰</button>
+        <h2 id="pageTitle">Dashboard</h2>
+      </div>
+      <div class="topbar-right">
+        <div class="token-badge">🪙 <span id="topbarTokens">0</span></div>
+        <div class="user-badge">
+          <div class="avatar" id="userAvatar">U</div>
+          <span id="userName">User</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ──── DASHBOARD ──── -->
+    <div id="page-dashboard" class="page-content">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Gold Balance</div>
+          <div class="stat-value gold" id="statGold">0.00</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Tokens</div>
+          <div class="stat-value accent" id="statTokens">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Spins Today</div>
+          <div class="stat-value" id="statSpins">0 / 5</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Level</div>
+          <div class="stat-value success" id="statLevel">1</div>
+        </div>
+      </div>
+
+      <div class="spin-section">
+        <div class="wheel-card">
+          <h3>🎡 Spin the Wheel</h3>
+          <p class="wheel-sub">Try your luck and earn tokens!</p>
+          <div class="wheel-container">
+            <div class="wheel-pointer">▼</div>
+            <canvas id="spinWheel" width="320" height="320"></canvas>
+          </div>
+          <button class="spin-btn" id="spinBtn" onclick="doSpin()">SPIN NOW</button>
+          <div class="spin-limit-bar" style="margin-top:16px;">
+            <div class="bar-label">
+              <span>Daily spins</span>
+              <span id="spinBarLabel">0 / 5</span>
+            </div>
+            <div class="bar-track"><div class="bar-fill" id="spinBarFill" style="width:0%"></div></div>
+          </div>
+        </div>
+
+        <div class="prize-card">
+          <h3>🎁 Prize Table</h3>
+          <table class="prize-table">
+            <thead><tr><th>Segment</th><th>Tokens</th><th>Rarity</th><th>Chance</th></tr></thead>
+            <tbody>
+              <tr><td>💎 Jackpot</td><td>200</td><td><span class="prize-tag legendary">Legendary</span></td><td>0.5%</td></tr>
+              <tr><td>⭐ Big Win</td><td>10</td><td><span class="prize-tag rare">Rare</span></td><td>4%</td></tr>
+              <tr><td>🔥 Win</td><td>5</td><td><span class="prize-tag uncommon">Uncommon</span></td><td>7%</td></tr>
+              <tr><td>✨ Small</td><td>2.5</td><td><span class="prize-tag common">Common</span></td><td>12%</td></tr>
+              <tr><td>🌟 Mini</td><td>1.5</td><td><span class="prize-tag common">Common</span></td><td>20%</td></tr>
+              <tr><td>💫 Tiny</td><td>0.5</td><td><span class="prize-tag common">Common</span></td><td>25%</td></tr>
+              <tr><td>🎁 Gift</td><td>1–5</td><td><span class="prize-tag rare">Rare</span></td><td>1.5%</td></tr>
+              <tr><td>😢 Miss</td><td>0</td><td><span class="prize-tag common">Common</span></td><td>30%</td></tr>
+            </tbody>
+          </table>
+          <div class="spin-history">
+            <h4>Recent Spins</h4>
+            <div class="history-list" id="historyList">
+              <div class="empty-state" style="padding:16px;">No spins yet — give it a go!</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──── WALLET ──── -->
+    <div id="page-wallet" class="page-content hidden">
+      <div class="wallet-summary">
+        <h3>📊 Token Overview</h3>
+        <div class="summary-grid">
+          <div class="summary-item"><div class="s-label">Total Tokens</div><div class="s-value gold" id="walletTotal">0</div></div>
+          <div class="summary-item"><div class="s-label">Earned (Spins)</div><div class="s-value" style="color:var(--success)" id="walletEarned">0</div></div>
+          <div class="summary-item"><div class="s-label">Purchased</div><div class="s-value" style="color:var(--accent-light)" id="walletPurchased">0</div></div>
+          <div class="summary-item"><div class="s-label">Withdrawn</div><div class="s-value" style="color:var(--danger)" id="walletWithdrawn">0</div></div>
+          <div class="summary-item"><div class="s-label">Available</div><div class="s-value gold" id="walletAvailable">0</div></div>
+        </div>
+      </div>
+
+      <div class="wallet-grid">
+        <div class="wallet-card">
+          <h3>🛒 Buy Tokens</h3>
+          <div class="form-group">
+            <label>Select Network</label>
+            <select id="buyNetwork" onchange="updateDepositAddress()">
+              <option value="">Choose network</option>
+              <option value="TRC20">TRC-20 (Tron)</option>
+              <option value="BEP20">BEP-20 (BSC)</option>
+            </select>
+          </div>
+          <div id="depositAddressBox" class="hidden">
+            <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">Send USDT to this address:</label>
+            <div class="crypto-address" id="depositAddress"></div>
+          </div>
+          <div class="form-group">
+            <label>Amount (tokens)</label>
+            <input type="number" id="buyAmount" placeholder="Min 100 tokens (= 1 USDT)" min="100">
+          </div>
+          <div class="form-group">
+            <label>Your Wallet ID (for reference)</label>
+            <input type="text" id="buyWallet" placeholder="Your sending wallet address">
+          </div>
+          <button class="btn-primary" onclick="buyTokens()">Submit Request</button>
+          <div class="upload-area" onclick="document.getElementById('proofFile').click()">
+            📤 Upload payment proof (screenshot)<br>
+            <span style="font-size:0.75rem;margin-top:6px;display:block;" id="proofLabel">Click to attach</span>
+            <input type="file" id="proofFile" accept="image/*" style="display:none" onchange="handleProof()">
+          </div>
+          <div class="note-box"><span class="note-icon">ℹ️</span>Rate: 100 tokens = 1 USDT. After payment, upload screenshot. Tokens credited once confirmed by admin (24h).</div>
+        </div>
+
+        <div class="wallet-card">
+          <h3>💸 Withdraw Tokens</h3>
+          <div class="form-group">
+            <label>Select Network</label>
+            <select id="withdrawNetwork">
+              <option value="">Choose network</option>
+              <option value="TRC20">TRC-20 (Tron)</option>
+              <option value="BEP20">BEP-20 (BSC)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Your Wallet Address</label>
+            <input type="text" id="withdrawWallet" placeholder="Receiving address">
+          </div>
+          <div class="form-group">
+            <label>Amount (tokens)</label>
+            <input type="number" id="withdrawAmount" placeholder="Min 200 tokens" min="200">
+          </div>
+          <button class="btn-primary" onclick="withdrawTokens()">Request Withdrawal</button>
+          <div class="note-box"><span class="note-icon">⚠️</span>Min withdrawal: 200 tokens. Tokens deducted immediately. Processing: 24–48 hours. 2% network fee applies.</div>
+        </div>
+      </div>
+
+      <div class="tx-history">
+        <h3>📜 Transaction History</h3>
+        <table class="tx-table">
+          <thead><tr><th>Type</th><th>Amount</th><th>Network</th><th>Status</th><th>Date</th></tr></thead>
+          <tbody id="txBody">
+            <tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:24px;">No transactions yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ──── PROFILE ──── -->
+    <div id="page-profile" class="page-content hidden">
+      <div class="profile-card">
+        <div class="profile-avatar" id="profileAvatar">U</div>
+        <h3>Your Profile</h3>
+        <div class="form-group"><label>Full Name</label><input type="text" id="profileName"></div>
+        <div class="form-group"><label>Email</label><input type="email" id="profileEmail" disabled></div>
+        <div class="form-group">
+          <label>Country</label>
+          <select id="profileCountry">
+            <option value="IN">India</option><option value="US">United States</option>
+            <option value="UK">United Kingdom</option><option value="SG">Singapore</option><option value="AE">UAE</option>
+          </select>
+        </div>
+        <div style="margin-bottom:18px;">
+          <label style="font-size:0.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;">Level &amp; Progress</label>
+          <div id="levelInfo" style="background:var(--bg-deep);border-radius:var(--radius-sm);padding:14px;font-size:0.85rem;color:var(--text-muted);"></div>
+        </div>
+        <button class="btn-primary" style="margin-top:8px" onclick="saveProfile()">Save changes</button>
+      </div>
+    </div>
+
+    <!-- ──── REFERRAL ──── -->
+    <div id="page-referral" class="page-content hidden">
+      <div class="referral-card">
+        <h3>🔗 Your Referral Link</h3>
+        <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:16px;">Share your link — earn <strong style="color:var(--gold)">10 bonus tokens</strong> for every friend who joins!</p>
+        <div class="referral-link-box">
+          <input type="text" id="referralLink" readonly>
+          <button class="copy-btn" onclick="copyReferral()">Copy</button>
+        </div>
+        <div class="referral-link-box" style="margin-bottom:0">
+          <input type="text" id="referralCode" readonly style="font-family:monospace;letter-spacing:0.1em;color:var(--gold)">
+          <button class="copy-btn" onclick="copyCode()">Copy Code</button>
+        </div>
+        <div class="stats-row" style="margin-top:20px;margin-bottom:0">
+          <div class="stat-card"><div class="stat-label">Total Referrals</div><div class="stat-value accent" id="refCount">0</div></div>
+          <div class="stat-card"><div class="stat-label">Bonus Earned</div><div class="stat-value gold" id="refBonus">0 tokens</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──── TOP LIST ──── -->
+    <div id="page-toplist" class="page-content hidden">
+      <div class="wallet-card" style="max-width:700px">
+        <h3>🏆 Top Earners</h3>
+        <table class="tx-table">
+          <thead><tr><th>#</th><th>Player</th><th>Tokens Earned</th><th>Level</th></tr></thead>
+          <tbody id="toplistBody">
+            <tr><td colspan="4" style="text-align:center;color:var(--text-dim);padding:24px;">No players yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- WIN MODAL -->
+<div id="winModal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <div class="win-icon" id="winIcon">🎉</div>
+    <div class="win-label">You won</div>
+    <div class="win-amount" id="winAmount">0</div>
+    <div class="win-sub" id="winSub">tokens added to your balance</div>
+    <button class="modal-close" onclick="closeWinModal()">Awesome!</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════
+//   SUPABASE CONFIG
+//   Step 1: Create a project at https://supabase.com
+//   Step 2: Run the SQL block below in the SQL editor
+//   Step 3: Replace the two values below with your credentials
+// ═══════════════════════════════════════════
+const SUPABASE_URL  = 'https://xcijxjeubfhqenokzxal.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjaWp4amV1YmZocWVub2t6eGFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MzAxNjcsImV4cCI6MjA5ODMwNjE2N30.BYs2x30A8wbkjqcRyrfHpReUq0wQ3omI49oQ3ncoyok';
+
+/* ── SQL SETUP — run once in Supabase → SQL Editor ───────────────────
+
+create table profiles (
+  id uuid references auth.users on delete cascade primary key,
+  name text not null,
+  email text unique not null,
+  country text default 'IN',
+  referral_code text unique,
+  created_at timestamptz default now()
+);
+create table wallets (
+  user_id uuid references auth.users on delete cascade primary key,
+  total_tokens numeric default 0,
+  earned_tokens numeric default 0,
+  purchased_tokens numeric default 0,
+  withdrawn_tokens numeric default 0,
+  gold_balance numeric default 0
+);
+create table spin_states (
+  user_id uuid references auth.users on delete cascade primary key,
+  spin_date text,
+  count integer default 0
+);
+create table spin_history (
+  id bigserial primary key,
+  user_id uuid references auth.users on delete cascade,
+  label text,
+  tokens_won numeric,
+  created_at timestamptz default now()
+);
+create table transactions (
+  id bigserial primary key,
+  user_id uuid references auth.users on delete cascade,
+  type text,
+  amount numeric,
+  network text,
+  wallet_address text,
+  status text default 'pending',
+  created_at timestamptz default now()
+);
+create table referral_uses (
+  id bigserial primary key,
+  referrer_id uuid references auth.users,
+  referred_id uuid references auth.users unique,
+  created_at timestamptz default now()
+);
+
+alter table profiles enable row level security;
+alter table wallets enable row level security;
+alter table spin_states enable row level security;
+alter table spin_history enable row level security;
+alter table transactions enable row level security;
+alter table referral_uses enable row level security;
+
+create policy "public read profiles"   on profiles      for select using (true);
+create policy "own profile"            on profiles      for all    using (auth.uid() = id);
+create policy "own wallet"             on wallets       for all    using (auth.uid() = user_id);
+create policy "all read wallets"       on wallets       for select using (auth.role() = 'authenticated');
+create policy "own spin state"         on spin_states   for all    using (auth.uid() = user_id);
+create policy "own spin history"       on spin_history  for all    using (auth.uid() = user_id);
+create policy "own transactions"       on transactions  for all    using (auth.uid() = user_id);
+create policy "referral uses auth"     on referral_uses for all    using (auth.role() = 'authenticated');
+
+────────────────────────────────────────────────────────────────────── */
+
+// ── init ──────────────────────────────────
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let currentUserId = null;
+let currentEmail  = null;
+
+// Show setup banner if not configured
+if (SUPABASE_URL.includes('YOUR_PROJECT')) {
+  document.body.insertAdjacentHTML('afterbegin',
+    '<div class="setup-banner">⚙️ <strong>Setup required:</strong> Open this file and replace <code>SUPABASE_URL</code> and <code>SUPABASE_ANON</code> with your Supabase project credentials. <a href="https://supabase.com" target="_blank">→ supabase.com</a></div>'
+  );
+}
+
+// ═══════════════════════════════════════════
+//   HELPERS
+// ═══════════════════════════════════════════
+function level(earned) {
+  if (earned >= 1000) return 5;
+  if (earned >= 600)  return 4;
+  if (earned >= 300)  return 3;
+  if (earned >= 100)  return 2;
+  return 1;
+}
+function maxSpinsForLevel(lv) { return [5, 8, 12, 16, 20][lv - 1]; }
+
+function genReferralCode(name, email) {
+  const prefix = (name || email).replace(/[^a-z]/gi, '').slice(0, 4).toUpperCase();
+  const suffix  = email.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0');
+  return prefix + suffix;
+}
+function generateReferralLink(code) {
+  return window.location.href.split('?')[0] + '?ref=' + code;
+}
+
+// ═══════════════════════════════════════════
+//   AUTH
+// ═══════════════════════════════════════════
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t, i) => {
+    t.classList.toggle('active', (i === 0) === (tab === 'login'));
+  });
+  document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
+  document.getElementById('signupForm').classList.toggle('hidden', tab !== 'signup');
+}
+
+async function sendOTP(type) {
+  const email = document.getElementById(type + 'Email').value.trim().toLowerCase();
+  if (!email || !email.includes('@')) { showToast('Enter a valid email', 'error'); return; }
+
+  // Validate + stash signup fields before sending so magic-link redirect can use them
+  if (type === 'signup') {
+    const name = document.getElementById('signupName').value.trim();
+    if (!name) { showToast('Enter your name first', 'error'); return; }
+    sessionStorage.setItem('s2e_pending', JSON.stringify({
+      name,
+      country:  document.getElementById('signupCountry').value,
+      refInput: document.getElementById('signupReferral').value.trim().toUpperCase(),
+      email,
+    }));
+  }
+
+  const btn = document.getElementById(type + 'OtpBtn');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+
+  const { error } = await sb.auth.signInWithOtp({
+    email,
+    options: {
+      shouldCreateUser: true,
+      emailRedirectTo: window.location.href.split('?')[0],
+    },
+  });
+
+  if (error) {
+    btn.disabled = false;
+    btn.textContent = 'Send OTP';
+    showToast(error.message, 'error');
+    return;
+  }
+
+  btn.textContent = 'Sent ✓';
+  setTimeout(() => { btn.disabled = false; btn.textContent = 'Resend'; }, 30000);
+
+  document.getElementById(type + 'OtpGroup').classList.remove('hidden');
+  const box = document.getElementById(type + 'OtpBox');
+  box.classList.remove('hidden');
+  box.innerHTML = `<div class="otp-box">📧 <strong>Check your email</strong><br>
+    Click the <strong>magic link</strong> to sign in instantly<br>
+    <span style="font-size:0.78rem;opacity:0.7">— or paste the 6-digit code below if shown in the email —</span></div>`;
+  showToast('Magic link sent to ' + email, 'success');
+}
+
+async function handleAuth(type) {
+  try {
+    const email = document.getElementById(type + 'Email').value.trim().toLowerCase();
+    const code  = document.getElementById(type + 'Otp').value.trim();
+    if (!email) { showToast('Enter your email', 'error'); return; }
+    if (!code || code.length < 6) { showToast('Enter the 6-digit OTP', 'error'); return; }
+
+    const { data, error } = await sb.auth.verifyOtp({ email, token: code, type: 'email' });
+    if (error) { showToast(error.message, 'error'); return; }
+
+    const userId = data.user.id;
+    const { data: profile } = await sb.from('profiles').select('id').eq('id', userId).single();
+
+    if (type === 'login') {
+      if (!profile) { showToast('No account found. Please sign up first.', 'error'); return; }
+    }
+
+    if (type === 'signup') {
+      if (profile) { showToast('Account already exists. Please log in.', 'error'); return; }
+
+      const name    = document.getElementById('signupName').value.trim();
+      const country = document.getElementById('signupCountry').value;
+      const refInput = document.getElementById('signupReferral').value.trim().toUpperCase();
+      if (!name) { showToast('Enter your name', 'error'); return; }
+
+      const refCode = genReferralCode(name, email);
+
+      const { error: pErr } = await sb.from('profiles').insert({ id: userId, name, email, country, referral_code: refCode });
+      if (pErr) { showToast(pErr.message, 'error'); return; }
+
+      await sb.from('wallets').insert({ user_id: userId, total_tokens: 100, earned_tokens: 100, gold_balance: 1 });
+      await sb.from('spin_history').insert({ user_id: userId, label: '🎁 Welcome Bonus', tokens_won: 100 });
+
+      if (refInput) {
+        const { data: referrer } = await sb.from('profiles').select('id').eq('referral_code', refInput).single();
+        if (referrer) {
+          await sb.from('referral_uses').insert({ referrer_id: referrer.id, referred_id: userId });
+          const { data: rw } = await sb.from('wallets').select('*').eq('user_id', referrer.id).single();
+          if (rw) {
+            const newTotal   = parseFloat((rw.total_tokens + 10).toFixed(2));
+            const newEarned  = parseFloat((rw.earned_tokens + 10).toFixed(2));
+            await sb.from('wallets').update({
+              total_tokens:   newTotal,
+              earned_tokens:  newEarned,
+              gold_balance:   parseFloat((newTotal / 100).toFixed(4)),
+            }).eq('user_id', referrer.id);
+          }
+        }
+      }
+      showToast('Welcome! 100 bonus tokens credited 🎉', 'success');
+    }
+
+    currentUserId = userId;
+    currentEmail  = email;
+    await enterApp();
+  } catch (e) {
+    showToast(e.message || 'Something went wrong', 'error');
+  }
+}
+
+async function checkSession() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  const { data: profile } = await sb.from('profiles').select('id').eq('id', session.user.id).single();
+  if (!profile) return;
+  currentUserId = session.user.id;
+  currentEmail  = session.user.email;
+  await enterApp();
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  currentUserId = null;
+  currentEmail  = null;
+  document.getElementById('appShell').classList.add('hidden');
+  document.getElementById('authPage').classList.remove('hidden');
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginOtp').value   = '';
+  document.getElementById('loginOtpGroup').classList.add('hidden');
+  document.getElementById('loginOtpBox').classList.add('hidden');
+}
+
+async function enterApp() {
+  document.getElementById('authPage').classList.add('hidden');
+  document.getElementById('appShell').classList.remove('hidden');
+  drawWheel();
+  await Promise.all([
+    updateUI(),
+    loadHistory(),
+    loadLeaderboard(),
+    loadReferral(),
+    loadProfile(),
+  ]);
+}
+
+// ═══════════════════════════════════════════
+//   NAVIGATION
+// ═══════════════════════════════════════════
+function navigate(page) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelector(`[data-page="${page}"]`).classList.add('active');
+  document.querySelectorAll('[id^="page-"]').forEach(p => p.classList.add('hidden'));
+  document.getElementById('page-' + page).classList.remove('hidden');
+  const titles = { dashboard:'Dashboard', profile:'Profile', wallet:'Wallet', referral:'Referral', toplist:'Top List' };
+  document.getElementById('pageTitle').textContent = titles[page] || page;
+  document.getElementById('sidebar').classList.remove('open');
+  if (page === 'wallet')   { loadWalletPage(); loadTransactions(); }
+  if (page === 'referral') loadReferral();
+  if (page === 'toplist')  loadLeaderboard();
+  if (page === 'profile')  loadProfile();
+}
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+
+// ═══════════════════════════════════════════
+//   UI UPDATE
+// ═══════════════════════════════════════════
+async function updateUI() {
+  if (!currentUserId) return;
+  const [{ data: user }, { data: wallet }, { data: spinState }] = await Promise.all([
+    sb.from('profiles').select('name').eq('id', currentUserId).single(),
+    sb.from('wallets').select('*').eq('user_id', currentUserId).single(),
+    sb.from('spin_states').select('*').eq('user_id', currentUserId).single(),
+  ]);
+
+  const w     = wallet || { total_tokens: 0, earned_tokens: 0, gold_balance: 0 };
+  const today = new Date().toDateString();
+  const ss    = (spinState && spinState.spin_date === today) ? spinState : { count: 0 };
+  const lv    = level(w.earned_tokens);
+  const maxS  = maxSpinsForLevel(lv);
+
+  const name     = user?.name || 'User';
+  const initials = name.split(' ').map(c => c[0]).join('').toUpperCase().slice(0, 2);
+  document.getElementById('userAvatar').textContent    = initials;
+  document.getElementById('userName').textContent      = name.split(' ')[0];
+  document.getElementById('topbarTokens').textContent  = (+w.total_tokens).toFixed(1);
+  document.getElementById('statGold').textContent      = (+w.gold_balance || 0).toFixed(4);
+  document.getElementById('statTokens').textContent    = (+w.total_tokens).toFixed(1);
+  document.getElementById('statSpins').textContent     = ss.count + ' / ' + maxS;
+  document.getElementById('statLevel').textContent     = lv;
+
+  const pct = Math.round((ss.count / maxS) * 100);
+  document.getElementById('spinBarLabel').textContent  = ss.count + ' / ' + maxS;
+  document.getElementById('spinBarFill').style.width   = pct + '%';
+
+  const btn = document.getElementById('spinBtn');
+  if (ss.count >= maxS) {
+    btn.disabled    = true;
+    btn.textContent = 'LIMIT REACHED';
+  } else {
+    btn.disabled    = false;
+    btn.textContent = 'SPIN NOW (' + Math.max(0, maxS - ss.count) + ' left)';
+  }
+}
+
+// ═══════════════════════════════════════════
+//   SPIN WHEEL
+// ═══════════════════════════════════════════
+const SEGMENTS = [
+  { label: '2.5',  color: '#7c4dff', text: '#fff',     tokens: 2.5,  icon: '✨', name: 'Small'   },
+  { label: '🎁',   color: '#f0b90b', text: '#000',     tokens: null, icon: '🎁', name: 'Gift'    },
+  { label: '200',  color: '#ff4757', text: '#fff',     tokens: 200,  icon: '💎', name: 'JACKPOT' },
+  { label: '1.5',  color: '#2ed573', text: '#000',     tokens: 1.5,  icon: '🌟', name: 'Mini'    },
+  { label: '0',    color: '#1a1a3e', text: '#8a87a8',  tokens: 0,    icon: '😢', name: 'Miss'    },
+  { label: '10',   color: '#00b4d8', text: '#000',     tokens: 10,   icon: '⭐', name: 'Big Win' },
+  { label: '5',    color: '#e040fb', text: '#fff',     tokens: 5,    icon: '🔥', name: 'Win'     },
+  { label: '0.5',  color: '#0f1235', text: '#ccc',     tokens: 0.5,  icon: '💫', name: 'Tiny'    },
+];
+
+const SPIN_OUTCOMES = [
+  { max: 0.300, seg: 4 },
+  { max: 0.550, seg: 7 },
+  { max: 0.750, seg: 3 },
+  { max: 0.870, seg: 0 },
+  { max: 0.940, seg: 6 },
+  { max: 0.980, seg: 5 },
+  { max: 0.995, seg: 1 },
+  { max: 1.000, seg: 2 },
+];
+
+function pickSegment() {
+  const r = Math.random();
+  for (const o of SPIN_OUTCOMES) if (r < o.max) return o.seg;
+  return 4;
+}
+
+let wheelRotation = 0;
+let isSpinning    = false;
+
+function drawWheel() {
+  const canvas = document.getElementById('spinWheel');
+  if (!canvas) return;
+  const ctx    = canvas.getContext('2d');
+  const size   = canvas.width;
+  const center = size / 2;
+  const radius = center - 4;
+  const arc    = (2 * Math.PI) / SEGMENTS.length;
+
+  ctx.clearRect(0, 0, size, size);
+
+  SEGMENTS.forEach((seg, i) => {
+    const start = i * arc - Math.PI / 2;
+    const end   = start + arc;
+
+    ctx.beginPath();
+    ctx.moveTo(center, center);
+    ctx.arc(center, center, radius, start, end);
+    ctx.closePath();
+    ctx.fillStyle   = seg.color;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.lineWidth   = 2;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(center, center);
+    ctx.rotate(start + arc / 2);
+    ctx.fillStyle      = seg.text;
+    ctx.font           = 'bold 15px "Space Grotesk", sans-serif';
+    ctx.textAlign      = 'center';
+    ctx.textBaseline   = 'middle';
+    ctx.fillText(seg.label, radius * 0.64, 0);
+    ctx.restore();
+  });
+
+  ctx.beginPath();
+  ctx.arc(center, center, 28, 0, 2 * Math.PI);
+  ctx.fillStyle   = '#06081a';
+  ctx.fill();
+  ctx.strokeStyle = '#f0b90b';
+  ctx.lineWidth   = 3;
+  ctx.stroke();
+
+  ctx.fillStyle    = '#f0b90b';
+  ctx.font         = 'bold 10px "Space Grotesk", sans-serif';
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('SPIN', center, center);
+
+  ctx.beginPath();
+  ctx.arc(center, center, radius, 0, 2 * Math.PI);
+  ctx.strokeStyle = 'rgba(240,185,11,0.5)';
+  ctx.lineWidth   = 4;
+  ctx.stroke();
+}
+
+async function doSpin() {
+  if (isSpinning) return;
+
+  const [{ data: wallet }, { data: spinState }] = await Promise.all([
+    sb.from('wallets').select('earned_tokens').eq('user_id', currentUserId).single(),
+    sb.from('spin_states').select('*').eq('user_id', currentUserId).single(),
+  ]);
+
+  const today = new Date().toDateString();
+  const ss    = (spinState && spinState.spin_date === today) ? spinState : { count: 0 };
+  const lv    = level(wallet?.earned_tokens || 0);
+  const maxS  = maxSpinsForLevel(lv);
+
+  if (ss.count >= maxS) { showToast('Daily spin limit reached! Come back tomorrow.', 'error'); return; }
+
+  isSpinning = true;
+  const btn  = document.getElementById('spinBtn');
+  btn.disabled  = true;
+  btn.innerHTML = '<span class="loading-spinner"></span> SPINNING…';
+
+  const segIdx        = pickSegment();
+  const seg           = SEGMENTS[segIdx];
+  const segAngle      = 360 / SEGMENTS.length;
+  const segCenter     = segIdx * segAngle + segAngle / 2;
+  const targetAngle   = (360 - segCenter) % 360;
+  const fullSpins     = 360 * (5 + Math.floor(Math.random() * 3));
+  const finalRot      = wheelRotation + fullSpins + targetAngle - (wheelRotation % 360);
+
+  document.getElementById('spinWheel').style.transform = `rotate(${finalRot}deg)`;
+  wheelRotation = finalRot;
+
+  setTimeout(async () => {
+    try {
+      isSpinning = false;
+
+      let tokensWon = seg.tokens === null
+        ? parseFloat((1 + Math.random() * 4).toFixed(1))
+        : seg.tokens;
+      const isGift = seg.tokens === null;
+
+      // Update spin state
+      await sb.from('spin_states').upsert({ user_id: currentUserId, spin_date: today, count: ss.count + 1 });
+
+      // Update wallet
+      const { data: cw } = await sb.from('wallets').select('*').eq('user_id', currentUserId).single();
+      const base      = cw || { total_tokens: 0, earned_tokens: 0 };
+      const newTotal  = parseFloat((base.total_tokens + tokensWon).toFixed(2));
+      const newEarned = parseFloat((base.earned_tokens + tokensWon).toFixed(2));
+      await sb.from('wallets').update({
+        total_tokens:  newTotal,
+        earned_tokens: newEarned,
+        gold_balance:  parseFloat((newTotal / 100).toFixed(4)),
+      }).eq('user_id', currentUserId);
+
+      // Record spin
+      await sb.from('spin_history').insert({
+        user_id:    currentUserId,
+        label:      seg.icon + ' ' + (isGift ? 'Gift' : seg.name),
+        tokens_won: tokensWon,
+      });
+
+      await updateUI();
+      await loadHistory();
+
+      if (tokensWon > 0) {
+        showWinModal(tokensWon, isGift, seg.name);
+      } else {
+        showToast('Better luck next time! 🎲', 'error');
+      }
+    } catch (e) {
+      showToast('Error saving spin: ' + e.message, 'error');
+    }
+  }, 4200);
+}
+
+function showWinModal(amount, isGift, name) {
+  const icon = isGift ? '🎁' : (amount >= 100 ? '💎' : amount >= 10 ? '⭐' : amount >= 5 ? '🔥' : '🎉');
+  document.getElementById('winIcon').textContent   = icon;
+  document.getElementById('winAmount').textContent = '+' + amount + ' tokens';
+  document.getElementById('winSub').textContent    = isGift ? 'Mystery gift opened!' : name + ' — added to your balance';
+  document.getElementById('winModal').classList.remove('hidden');
+}
+function closeWinModal() { document.getElementById('winModal').classList.add('hidden'); }
+
+// ═══════════════════════════════════════════
+//   DATA LOADERS
+// ═══════════════════════════════════════════
+async function loadHistory() {
+  const { data: hist } = await sb.from('spin_history')
+    .select('label, tokens_won, created_at')
+    .eq('user_id', currentUserId)
+    .order('created_at', { ascending: false })
+    .limit(15);
+
+  const list = document.getElementById('historyList');
+  if (!hist || !hist.length) {
+    list.innerHTML = '<div class="empty-state" style="padding:16px;">No spins yet — give it a go!</div>';
+    return;
+  }
+  list.innerHTML = hist.map(h => {
+    const t = new Date(h.created_at);
+    return `<div class="history-item">
+      <span>${h.label} → <span class="h-amount">${h.tokens_won > 0 ? '+' + h.tokens_won : '0'} tokens</span></span>
+      <span class="h-time">${t.toLocaleDateString([],{month:'short',day:'numeric'})} ${t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span>
+    </div>`;
+  }).join('');
+}
+
+async function loadWalletPage() {
+  const { data: w } = await sb.from('wallets').select('*').eq('user_id', currentUserId).single();
+  if (!w) return;
+  const avail = Math.max(0, w.total_tokens - w.withdrawn_tokens);
+  document.getElementById('walletTotal').textContent     = (+w.total_tokens).toFixed(2);
+  document.getElementById('walletEarned').textContent    = (+w.earned_tokens).toFixed(2);
+  document.getElementById('walletPurchased').textContent = (+w.purchased_tokens).toFixed(2);
+  document.getElementById('walletWithdrawn').textContent = (+w.withdrawn_tokens).toFixed(2);
+  document.getElementById('walletAvailable').textContent = avail.toFixed(2);
+}
+
+async function loadTransactions() {
+  const { data: txns } = await sb.from('transactions')
+    .select('*')
+    .eq('user_id', currentUserId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  const tbody = document.getElementById('txBody');
+  if (!txns || !txns.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:24px;">No transactions yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = txns.map(tx => `<tr>
+    <td>${tx.type === 'buy' ? '🛒' : '💸'} ${tx.type}</td>
+    <td style="color:${tx.type === 'buy' ? 'var(--success)' : 'var(--danger)'}">
+      ${tx.type === 'buy' ? '+' : '-'}${tx.amount}
+    </td>
+    <td>${tx.network}</td>
+    <td><span class="status-badge ${tx.status}">${tx.status}</span></td>
+    <td>${new Date(tx.created_at).toLocaleDateString()}</td>
+  </tr>`).join('');
+}
+
+async function loadLeaderboard() {
+  const { data: wallets } = await sb.from('wallets')
+    .select('user_id, earned_tokens')
+    .order('earned_tokens', { ascending: false })
+    .limit(20);
+
+  const tbody = document.getElementById('toplistBody');
+  if (!wallets || !wallets.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-dim);padding:24px;">No players yet</td></tr>';
+    return;
+  }
+
+  const { data: profiles } = await sb.from('profiles').select('id, name').in('id', wallets.map(w => w.user_id));
+  const nameMap = Object.fromEntries((profiles || []).map(p => [p.id, p.name]));
+
+  tbody.innerHTML = wallets.map((w, i) => {
+    const rank   = i + 1;
+    const medal  = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '#' + rank;
+    const name   = nameMap[w.user_id] || 'Player';
+    const isYou  = w.user_id === currentUserId;
+    const lv     = level(w.earned_tokens);
+    return `<tr style="${isYou ? 'background:rgba(240,185,11,0.04)' : ''}">
+      <td>${medal}</td>
+      <td>${name}${isYou ? ' <span style="color:var(--gold);font-size:0.75rem;">(you)</span>' : ''}</td>
+      <td style="color:var(--gold);font-weight:600;">${(+w.earned_tokens).toFixed(1)}</td>
+      <td><span class="level-badge">Lv ${lv}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+async function loadReferral() {
+  const [{ data: profile }, { data: uses }] = await Promise.all([
+    sb.from('profiles').select('referral_code').eq('id', currentUserId).single(),
+    sb.from('referral_uses').select('id').eq('referrer_id', currentUserId),
+  ]);
+  const code  = profile?.referral_code || '';
+  const count = uses?.length || 0;
+  document.getElementById('referralCode').value    = code;
+  document.getElementById('referralLink').value    = code ? generateReferralLink(code) : '';
+  document.getElementById('refCount').textContent  = count;
+  document.getElementById('refBonus').textContent  = (count * 10) + ' tokens';
+}
+
+async function loadProfile() {
+  const [{ data: user }, { data: w }] = await Promise.all([
+    sb.from('profiles').select('*').eq('id', currentUserId).single(),
+    sb.from('wallets').select('earned_tokens').eq('user_id', currentUserId).single(),
+  ]);
+  if (!user) return;
+  const earned   = w?.earned_tokens || 0;
+  const lv       = level(earned);
+  const initials = user.name.split(' ').map(c => c[0]).join('').toUpperCase().slice(0, 2);
+  document.getElementById('profileAvatar').textContent = initials;
+  document.getElementById('profileName').value         = user.name || '';
+  document.getElementById('profileEmail').value        = user.email || '';
+  document.getElementById('profileCountry').value      = user.country || 'IN';
+
+  const nextThresholds = [100, 300, 600, 1000];
+  const nextTarget     = nextThresholds[lv - 1];
+  const info = document.getElementById('levelInfo');
+  if (lv >= 5) {
+    info.innerHTML = `<strong style="color:var(--gold)">Level ${lv} — MAX</strong><br>You've reached the top! ${(+earned).toFixed(1)} tokens earned.`;
+  } else {
+    const pct = Math.round((earned / nextTarget) * 100);
+    info.innerHTML = `
+      <strong style="color:var(--accent-light)">Level ${lv}</strong> — ${(+earned).toFixed(1)} / ${nextTarget} tokens to Level ${lv + 1}
+      <div class="bar-track" style="margin-top:8px;"><div class="bar-fill" style="width:${Math.min(pct,100)}%;background:linear-gradient(90deg,var(--accent-light),var(--accent))"></div></div>
+      <div style="margin-top:6px;font-size:0.75rem;">${pct}% — ${maxSpinsForLevel(lv+1)} spins/day at next level</div>`;
+  }
+}
+
+// ═══════════════════════════════════════════
+//   WALLET ACTIONS
+// ═══════════════════════════════════════════
+const DEPOSIT_ADDRESSES = {
+  TRC20: 'TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE',
+  BEP20: '0x3D2E2b9C9f3a4E5d6C7B8A9e1F2c3D4e5F6a7B8',
+};
+
+function updateDepositAddress() {
+  const net = document.getElementById('buyNetwork').value;
+  const box = document.getElementById('depositAddressBox');
+  if (net && DEPOSIT_ADDRESSES[net]) {
+    box.classList.remove('hidden');
+    document.getElementById('depositAddress').textContent = DEPOSIT_ADDRESSES[net];
+  } else {
+    box.classList.add('hidden');
+  }
+}
+
+async function buyTokens() {
+  const network        = document.getElementById('buyNetwork').value;
+  const amount         = parseFloat(document.getElementById('buyAmount').value);
+  const wallet_address = document.getElementById('buyWallet').value.trim();
+
+  if (!network)                { showToast('Select a network', 'error'); return; }
+  if (!amount || amount < 100) { showToast('Minimum purchase: 100 tokens', 'error'); return; }
+  if (!wallet_address)         { showToast('Enter your sending wallet address', 'error'); return; }
+
+  const { error } = await sb.from('transactions').insert({
+    user_id: currentUserId, type: 'buy', amount, network, wallet_address, status: 'pending',
+  });
+  if (error) { showToast(error.message, 'error'); return; }
+
+  showToast('Purchase request submitted! Admin will verify and credit tokens within 24h.', 'success');
+  document.getElementById('buyAmount').value  = '';
+  document.getElementById('buyWallet').value  = '';
+  document.getElementById('buyNetwork').value = '';
+  document.getElementById('depositAddressBox').classList.add('hidden');
+  await loadTransactions();
+}
+
+async function withdrawTokens() {
+  const network        = document.getElementById('withdrawNetwork').value;
+  const wallet_address = document.getElementById('withdrawWallet').value.trim();
+  const amount         = parseFloat(document.getElementById('withdrawAmount').value);
+
+  if (!network)                { showToast('Select a network', 'error'); return; }
+  if (!wallet_address)         { showToast('Enter your receiving wallet address', 'error'); return; }
+  if (!amount || amount < 200) { showToast('Minimum withdrawal: 200 tokens', 'error'); return; }
+
+  const { data: w } = await sb.from('wallets').select('*').eq('user_id', currentUserId).single();
+  const avail = Math.max(0, (w?.total_tokens || 0) - (w?.withdrawn_tokens || 0));
+  if (amount > avail) { showToast('Insufficient balance. Available: ' + avail.toFixed(1) + ' tokens', 'error'); return; }
+
+  const newWithdrawn = parseFloat(((w.withdrawn_tokens || 0) + amount).toFixed(2));
+  await sb.from('wallets').update({ withdrawn_tokens: newWithdrawn }).eq('user_id', currentUserId);
+
+  const { error } = await sb.from('transactions').insert({
+    user_id: currentUserId, type: 'withdraw', amount, network, wallet_address, status: 'pending',
+  });
+  if (error) { showToast(error.message, 'error'); return; }
+
+  showToast(`Withdrawal of ${amount} tokens requested! Processing in 24–48h.`, 'success');
+  document.getElementById('withdrawAmount').value  = '';
+  document.getElementById('withdrawWallet').value  = '';
+  document.getElementById('withdrawNetwork').value = '';
+  await Promise.all([updateUI(), loadWalletPage(), loadTransactions()]);
+}
+
+function handleProof() {
+  const file = document.getElementById('proofFile').files[0];
+  if (file) {
+    document.getElementById('proofLabel').textContent = '✅ ' + file.name + ' attached';
+    showToast('Proof attached — submit your request', 'success');
+  }
+}
+
+// ═══════════════════════════════════════════
+//   PROFILE
+// ═══════════════════════════════════════════
+async function saveProfile() {
+  const name    = document.getElementById('profileName').value.trim();
+  const country = document.getElementById('profileCountry').value;
+  if (!name) { showToast('Name cannot be empty', 'error'); return; }
+  const { error } = await sb.from('profiles').update({ name, country }).eq('id', currentUserId);
+  if (error) { showToast(error.message, 'error'); return; }
+  await updateUI();
+  showToast('Profile updated', 'success');
+}
+
+// ═══════════════════════════════════════════
+//   REFERRAL
+// ═══════════════════════════════════════════
+function copyReferral() {
+  const v = document.getElementById('referralLink').value;
+  if (v) { navigator.clipboard?.writeText(v); showToast('Referral link copied!', 'success'); }
+}
+function copyCode() {
+  const v = document.getElementById('referralCode').value;
+  if (v) { navigator.clipboard?.writeText(v); showToast('Referral code copied!', 'success'); }
+}
+
+// ═══════════════════════════════════════════
+//   TOAST
+// ═══════════════════════════════════════════
+function showToast(msg, type) {
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  const t = document.createElement('div');
+  t.className   = 'toast ' + (type || '');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3800);
+}
+
+// ═══════════════════════════════════════════
+//   INIT
+// ═══════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  drawWheel();
+
+  // Handles: session restore on reload, magic link clicks, and OTP verifyOtp sign-ins
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session && !currentUserId) {
+      const userId = session.user.id;
+      const email  = session.user.email;
+      const { data: profile } = await sb.from('profiles').select('id').eq('id', userId).single();
+
+      if (!profile) {
+        // New user via magic link — use stashed signup data
+        const pendingRaw = sessionStorage.getItem('s2e_pending');
+        if (!pendingRaw) {
+          // No signup data; login magic link but no account exists
+          await sb.auth.signOut();
+          showToast('No account found. Please sign up first.', 'error');
+          return;
+        }
+        const { name, country, refInput } = JSON.parse(pendingRaw);
+        const refCode = genReferralCode(name, email);
+
+        const { error: pErr } = await sb.from('profiles').insert({ id: userId, name, email, country, referral_code: refCode });
+        if (pErr) { showToast('Profile error: ' + pErr.message, 'error'); return; }
+
+        await sb.from('wallets').insert({ user_id: userId, total_tokens: 100, earned_tokens: 100, gold_balance: 1 });
+        await sb.from('spin_history').insert({ user_id: userId, label: '🎁 Welcome Bonus', tokens_won: 100 });
+
+        if (refInput) {
+          const { data: referrer } = await sb.from('profiles').select('id').eq('referral_code', refInput).single();
+          if (referrer) {
+            await sb.from('referral_uses').insert({ referrer_id: referrer.id, referred_id: userId });
+            const { data: rw } = await sb.from('wallets').select('*').eq('user_id', referrer.id).single();
+            if (rw) {
+              const newTotal = parseFloat((rw.total_tokens + 10).toFixed(2));
+              await sb.from('wallets').update({
+                total_tokens:  newTotal,
+                earned_tokens: parseFloat((rw.earned_tokens + 10).toFixed(2)),
+                gold_balance:  parseFloat((newTotal / 100).toFixed(4)),
+              }).eq('user_id', referrer.id);
+            }
+          }
+        }
+        sessionStorage.removeItem('s2e_pending');
+        showToast('Welcome! 100 bonus tokens credited 🎉', 'success');
+      }
+
+      currentUserId = userId;
+      currentEmail  = email;
+      await enterApp();
+    }
+
+    if (event === 'SIGNED_OUT') {
+      currentUserId = null;
+      currentEmail  = null;
+    }
+  });
+
+  const ref = new URLSearchParams(window.location.search).get('ref');
+  if (ref) {
+    document.getElementById('signupReferral').value = ref;
+    switchAuthTab('signup');
+  }
+});
+</script>
+</body>
+</html>
