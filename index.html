@@ -1705,55 +1705,16 @@ function showToast(msg, type) {
 document.addEventListener('DOMContentLoaded', () => {
   drawWheel();
 
-  // Handles: session restore on reload, magic link clicks, and OTP verifyOtp sign-ins
+  // Restore session on page reload only (INITIAL_SESSION)
   sb.auth.onAuthStateChange(async (event, session) => {
-    if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session && !currentUserId) {
+    if (event === 'INITIAL_SESSION' && session && !currentUserId) {
       const userId = session.user.id;
-      const email  = session.user.email;
       const { data: profile } = await sb.from('profiles').select('id').eq('id', userId).single();
-
-      if (!profile) {
-        // New user via magic link — use stashed signup data
-        const pendingRaw = sessionStorage.getItem('s2e_pending');
-        if (!pendingRaw) {
-          // No signup data; login magic link but no account exists
-          await sb.auth.signOut();
-          showToast('No account found. Please sign up first.', 'error');
-          return;
-        }
-        const { name, country, refInput } = JSON.parse(pendingRaw);
-        const refCode = genReferralCode(name, email);
-
-        const { error: pErr } = await sb.from('profiles').insert({ id: userId, name, email, country, referral_code: refCode });
-        if (pErr) { showToast('Profile error: ' + pErr.message, 'error'); return; }
-
-        await sb.from('wallets').insert({ user_id: userId, total_tokens: 100, earned_tokens: 100, gold_balance: 1 });
-        await sb.from('spin_history').insert({ user_id: userId, label: '🎁 Welcome Bonus', tokens_won: 100 });
-
-        if (refInput) {
-          const { data: referrer } = await sb.from('profiles').select('id').eq('referral_code', refInput).single();
-          if (referrer) {
-            await sb.from('referral_uses').insert({ referrer_id: referrer.id, referred_id: userId });
-            const { data: rw } = await sb.from('wallets').select('*').eq('user_id', referrer.id).single();
-            if (rw) {
-              const newTotal = parseFloat((rw.total_tokens + 10).toFixed(2));
-              await sb.from('wallets').update({
-                total_tokens:  newTotal,
-                earned_tokens: parseFloat((rw.earned_tokens + 10).toFixed(2)),
-                gold_balance:  parseFloat((newTotal / 100).toFixed(4)),
-              }).eq('user_id', referrer.id);
-            }
-          }
-        }
-        sessionStorage.removeItem('s2e_pending');
-        showToast('Welcome! 100 bonus tokens credited 🎉', 'success');
-      }
-
+      if (!profile) return; // user exists in auth but has no profile yet — let signup flow handle it
       currentUserId = userId;
-      currentEmail  = email;
+      currentEmail  = session.user.email;
       await enterApp();
     }
-
     if (event === 'SIGNED_OUT') {
       currentUserId = null;
       currentEmail  = null;
