@@ -1136,42 +1136,26 @@ async function handleAuth(type) {
 
       let userId = signUpData?.user?.id;
 
-      // Always sign in to guarantee an active session before DB inserts
+      // Sign in immediately to get an active session
       const { data: signInData, error: signInError } = await sb.auth.signInWithPassword({ email, password });
       if (signInError) { showToast('Incorrect email or password.', 'error'); return; }
       userId = signInData.user.id;
-
-      // Confirm session is live
-      const { data: { session: activeSession } } = await sb.auth.getSession();
-      if (!activeSession) { showToast('Session error. Please try again.', 'error'); return; }
-
       if (!userId) { showToast('Signup failed. Please try again.', 'error'); return; }
 
+      // Check if profile already exists (returning user)
       const { data: existingProfile } = await sb.from('profiles').select('id').eq('id', userId).single();
       if (!existingProfile) {
         const refCode = genReferralCode(name, email);
-        const { error: pErr } = await sb.from('profiles').insert({ id: userId, name, email, country, referral_code: refCode });
-        if (pErr) { showToast('Account setup failed. Please try again.', 'error'); return; }
-
-        await sb.from('wallets').insert({ user_id: userId, total_tokens: 100, earned_tokens: 100, gold_balance: 1 });
-        await sb.from('spin_history').insert({ user_id: userId, label: '🎁 Welcome Bonus', tokens_won: 100 });
-
-        if (refInput) {
-          const { data: referrer } = await sb.from('profiles').select('id').eq('referral_code', refInput).single();
-          if (referrer) {
-            await sb.from('referral_uses').insert({ referrer_id: referrer.id, referred_id: userId });
-            const { data: rw } = await sb.from('wallets').select('*').eq('user_id', referrer.id).single();
-            if (rw) {
-              const newTotal  = parseFloat((rw.total_tokens + 10).toFixed(2));
-              const newEarned = parseFloat((rw.earned_tokens + 10).toFixed(2));
-              await sb.from('wallets').update({
-                total_tokens:  newTotal,
-                earned_tokens: newEarned,
-                gold_balance:  parseFloat((newTotal / 100).toFixed(4)),
-              }).eq('user_id', referrer.id);
-            }
-          }
-        }
+        // Use SECURITY DEFINER RPC — bypasses RLS, handles all table inserts safely
+        const { error: rpcErr } = await sb.rpc('setup_new_user', {
+          p_user_id:   userId,
+          p_name:      name,
+          p_email:     email,
+          p_country:   country,
+          p_ref_code:  refCode,
+          p_ref_input: refInput || '',
+        });
+        if (rpcErr) { showToast('Account setup failed. Please try again.', 'error'); return; }
         showToast('Welcome! 100 bonus tokens credited 🎉', 'success');
       }
 
