@@ -80,7 +80,7 @@ input, select, textarea { font-family: inherit; }
   font-family: 'Space Grotesk', sans-serif;
   font-size: 1.75rem; font-weight: 700;
   background: linear-gradient(135deg, var(--gold-light), var(--gold));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
 }
 .auth-logo p { color: var(--text-muted); font-size: 0.875rem; margin-top: 6px; }
 
@@ -1131,7 +1131,7 @@ async function handleAuth(type) {
       const { data: signUpData, error: signUpError } = await sb.auth.signUp({ email, password });
 
       if (signUpError && !/email|rate|limit|credit/i.test(signUpError.message)) {
-        showToast(signUpError.message, 'error'); return;
+        showToast('Could not create account. Please try again.', 'error'); return;
       }
 
       let userId     = signUpData?.user?.id;
@@ -1139,7 +1139,7 @@ async function handleAuth(type) {
 
       if (!hasSession) {
         const { data: signInData, error: signInError } = await sb.auth.signInWithPassword({ email, password });
-        if (signInError) { showToast(signInError.message, 'error'); return; }
+        if (signInError) { showToast('Incorrect email or password.', 'error'); return; }
         userId     = signInData.user.id;
         hasSession = true;
       }
@@ -1150,7 +1150,7 @@ async function handleAuth(type) {
       if (!existingProfile) {
         const refCode = genReferralCode(name, email);
         const { error: pErr } = await sb.from('profiles').insert({ id: userId, name, email, country, referral_code: refCode });
-        if (pErr) { showToast(pErr.message, 'error'); return; }
+        if (pErr) { showToast('Account setup failed. Please try again.', 'error'); return; }
 
         await sb.from('wallets').insert({ user_id: userId, total_tokens: 100, earned_tokens: 100, gold_balance: 1 });
         await sb.from('spin_history').insert({ user_id: userId, label: '🎁 Welcome Bonus', tokens_won: 100 });
@@ -1179,7 +1179,7 @@ async function handleAuth(type) {
       await enterApp();
     }
   } catch (e) {
-    showToast(e.message || 'Something went wrong', 'error');
+    showToast('Something went wrong. Please try again.', 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = origText;
@@ -1440,7 +1440,7 @@ async function doSpin() {
         showToast('Better luck next time! 🎲', 'error');
       }
     } catch (e) {
-      showToast('Error saving spin: ' + e.message, 'error');
+      showToast('Could not save spin result. Please try again.', 'error');
     }
   }, 4200);
 }
@@ -1614,7 +1614,7 @@ async function buyTokens() {
   const { error } = await sb.from('transactions').insert({
     user_id: currentUserId, type: 'buy', amount, network, wallet_address, status: 'pending',
   });
-  if (error) { showToast(error.message, 'error'); return; }
+  if (error) { showToast('Could not submit purchase. Please try again.', 'error'); return; }
 
   showToast('Purchase request submitted! Admin will verify and credit tokens within 24h.', 'success');
   document.getElementById('buyAmount').value  = '';
@@ -1643,7 +1643,7 @@ async function withdrawTokens() {
   const { error } = await sb.from('transactions').insert({
     user_id: currentUserId, type: 'withdraw', amount, network, wallet_address, status: 'pending',
   });
-  if (error) { showToast(error.message, 'error'); return; }
+  if (error) { showToast('Could not submit withdrawal. Please try again.', 'error'); return; }
 
   showToast(`Withdrawal of ${amount} tokens requested! Processing in 24–48h.`, 'success');
   document.getElementById('withdrawAmount').value  = '';
@@ -1668,7 +1668,7 @@ async function saveProfile() {
   const country = document.getElementById('profileCountry').value;
   if (!name) { showToast('Name cannot be empty', 'error'); return; }
   const { error } = await sb.from('profiles').update({ name, country }).eq('id', currentUserId);
-  if (error) { showToast(error.message, 'error'); return; }
+  if (error) { showToast('Could not update profile. Please try again.', 'error'); return; }
   await updateUI();
   showToast('Profile updated', 'success');
 }
