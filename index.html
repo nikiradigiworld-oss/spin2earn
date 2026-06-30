@@ -38,6 +38,53 @@ body {
   overflow-x: hidden;
 }
 
+/* ─── ANIMATED BACKGROUND ─── */
+#bg-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+#bg-canvas ~ * { position: relative; z-index: 1; }
+
+@keyframes aurora1 {
+  0%,100% { transform: translate(0,0) scale(1); opacity: 0.18; }
+  50% { transform: translate(80px,-60px) scale(1.3); opacity: 0.28; }
+}
+@keyframes aurora2 {
+  0%,100% { transform: translate(0,0) scale(1); opacity: 0.12; }
+  50% { transform: translate(-60px,80px) scale(1.2); opacity: 0.22; }
+}
+@keyframes aurora3 {
+  0%,100% { transform: translate(0,0) scale(1); opacity: 0.1; }
+  33% { transform: translate(40px,60px) scale(1.15); opacity: 0.2; }
+  66% { transform: translate(-40px,-40px) scale(0.9); opacity: 0.14; }
+}
+
+.aurora-orb {
+  position: fixed; border-radius: 50%;
+  filter: blur(80px); pointer-events: none; z-index: 0;
+}
+.aurora-orb-1 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(124,77,255,0.45) 0%, transparent 70%);
+  top: -100px; left: -100px;
+  animation: aurora1 12s ease-in-out infinite;
+}
+.aurora-orb-2 {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(240,185,11,0.3) 0%, transparent 70%);
+  bottom: -150px; right: -150px;
+  animation: aurora2 15s ease-in-out infinite;
+}
+.aurora-orb-3 {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(46,213,115,0.2) 0%, transparent 70%);
+  top: 40%; left: 40%;
+  animation: aurora3 18s ease-in-out infinite;
+}
+
 .hidden { display: none !important; }
 button { cursor: pointer; font-family: inherit; border: none; }
 input, select, textarea { font-family: inherit; }
@@ -462,6 +509,10 @@ input, select, textarea { font-family: inherit; }
 </style>
 </head>
 <body>
+<canvas id="bg-canvas"></canvas>
+<div class="aurora-orb aurora-orb-1"></div>
+<div class="aurora-orb aurora-orb-2"></div>
+<div class="aurora-orb aurora-orb-3"></div>
 
 <!-- ═══ AUTH PAGE ═══ -->
 <div id="authPage" class="auth-page">
@@ -1598,6 +1649,108 @@ document.addEventListener('DOMContentLoaded', () => {
     switchAuthTab('signup');
   }
 });
+</script>
+
+<script>
+(function() {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  const COLORS = ['#f0b90b','#ffd54f','#7c4dff','#b388ff','#ffffff','#2ed573'];
+  let W, H, particles = [], shooting = [];
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function rand(min, max) { return Math.random() * (max - min) + min; }
+
+  function mkParticle() {
+    return {
+      x: rand(0, W), y: rand(0, H),
+      r: rand(0.5, 2.2),
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      alpha: rand(0.2, 0.9),
+      da: rand(0.003, 0.012) * (Math.random() < 0.5 ? 1 : -1),
+      vx: rand(-0.12, 0.12),
+      vy: rand(-0.12, 0.12),
+    };
+  }
+
+  function mkShoot() {
+    const angle = rand(Math.PI * 0.1, Math.PI * 0.4);
+    return {
+      x: rand(0, W * 0.7), y: rand(0, H * 0.4),
+      len: rand(80, 180),
+      speed: rand(8, 16),
+      alpha: 1,
+      angle,
+      vx: Math.cos(angle) * rand(8, 16),
+      vy: Math.sin(angle) * rand(8, 16),
+      life: 1,
+    };
+  }
+
+  function init() {
+    particles = Array.from({length: 160}, mkParticle);
+  }
+
+  let shootTimer = 0;
+  function draw(ts) {
+    ctx.clearRect(0, 0, W, H);
+
+    // particles
+    particles.forEach(p => {
+      p.alpha += p.da;
+      if (p.alpha <= 0.1 || p.alpha >= 0.95) p.da *= -1;
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+      if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = p.color;
+      ctx.shadowBlur = 6;
+      ctx.shadowColor = p.color;
+      ctx.fill();
+      ctx.restore();
+    });
+
+    // shooting stars
+    shootTimer++;
+    if (shootTimer > 120 && Math.random() < 0.04) {
+      shooting.push(mkShoot());
+      shootTimer = 0;
+    }
+    shooting = shooting.filter(s => s.life > 0);
+    shooting.forEach(s => {
+      s.life -= 0.025;
+      s.x += s.vx; s.y += s.vy;
+      ctx.save();
+      ctx.globalAlpha = s.life * 0.85;
+      const grad = ctx.createLinearGradient(s.x, s.y, s.x - s.vx * 10, s.y - s.vy * 10);
+      grad.addColorStop(0, '#fff');
+      grad.addColorStop(1, 'transparent');
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1.5;
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = '#ffd54f';
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y);
+      ctx.lineTo(s.x - s.vx * 10, s.y - s.vy * 10);
+      ctx.stroke();
+      ctx.restore();
+    });
+
+    requestAnimationFrame(draw);
+  }
+
+  resize();
+  init();
+  requestAnimationFrame(draw);
+  window.addEventListener('resize', () => { resize(); init(); });
+})();
 </script>
 </body>
 </html>
