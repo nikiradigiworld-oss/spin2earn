@@ -1104,12 +1104,14 @@ async function handleAuth(type) {
     if (type === 'login') {
       const { data, error } = await sb.auth.signInWithPassword({ email, password });
       if (error) {
-        // Email not confirmed — still let them in since autoconfirm is on
-        if (/confirm|verified/i.test(error.message)) {
-          showToast('Checking your account…', 'success');
+        if (/invalid|credentials|password/i.test(error.message)) {
+          showToast('Incorrect email or password.', 'error');
+        } else if (/user not found/i.test(error.message)) {
+          showToast('No account found. Please sign up first.', 'error');
         } else {
-          showToast(error.message, 'error'); return;
+          showToast('Login failed. Please try again.', 'error');
         }
+        return;
       }
       const userId = data?.user?.id;
       if (!userId) { showToast('Login failed. Please try again.', 'error'); return; }
